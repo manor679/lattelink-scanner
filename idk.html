@@ -3,9 +3,31 @@
 <head>
   <title>LattéLink Scanner</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #info { white-space: pre-line; margin-bottom: 10px; }
-    button { padding: 10px 20px; font-size: 16px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      max-width: 500px;
+      margin: auto;
+    }
+    h1 {
+      color: #6c4d2d;
+    }
+    #info {
+      margin: 20px 0;
+      font-size: 18px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #c49b66;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #ccc;
+    }
   </style>
 </head>
 <body>
@@ -14,7 +36,8 @@
   <button id="addCoffee" disabled>Add Coffee</button>
 
   <script>
-    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSWnBfpV9eBj_lnusDpuX0Cug5NOuCs8pz5KRSqvLJuqRcmMMBOfMreOcgkJmVpB5dCbQ2sPxxjFpfd/pub?output=csv';
+    // 🔗 Link to your published Google Sheet (CSV output)
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWnBfpV9eBj_lnusDpuX0Cug5NOuCs8pz5KRSqvLJuqRcmMMBOfMreOcgkJmVpB5dCbQ2sPxxjFpfd/pub?output=csv";
 
     function getParam(name) {
       const params = new URLSearchParams(window.location.search);
@@ -22,14 +45,10 @@
     }
 
     async function fetchSheet() {
-      try {
-        const response = await fetch(sheetUrl);
-        if (!response.ok) throw new Error('Failed to fetch sheet data');
-        return await response.text();
-      } catch (e) {
-        document.getElementById('info').innerText = 'Error loading data: ' + e.message;
-        throw e;
-      }
+      const response = await fetch(sheetUrl);
+      if (!response.ok) throw new Error("Failed to fetch");
+      const text = await response.text();
+      return text;
     }
 
     function parseCSV(text) {
@@ -38,7 +57,7 @@
       return lines.slice(1).map(line => {
         const parts = line.split(',');
         const obj = {};
-        headers.forEach((header, i) => obj[header] = parts[i]);
+        headers.forEach((header, i) => obj[header.trim()] = parts[i]?.trim());
         return obj;
       });
     }
@@ -49,38 +68,42 @@
     async function init() {
       const cupId = getParam('id');
       if (!cupId) {
-        document.getElementById('info').innerText = 'No cup ID found in URL.';
+        document.getElementById('info').innerText = '❌ No cup ID found in URL.';
         return;
       }
 
-      const csvText = await fetchSheet();
-      cups = parseCSV(csvText);
+      try {
+        const csvText = await fetchSheet();
+        cups = parseCSV(csvText);
 
-      currentCup = cups.find(cup => cup.CupID === cupId);
+        currentCup = cups.find(cup => cup.CupID === cupId);
 
-      if (!currentCup) {
-        document.getElementById('info').innerText = 'Cup not found!';
-        return;
+        if (!currentCup) {
+          document.getElementById('info').innerText = '❌ Cup not found.';
+          return;
+        }
+
+        document.getElementById('info').innerText =
+          `✅ Customer: ${currentCup.CustomerName}\n☕ Coffees: ${currentCup.Coffees}`;
+        document.getElementById('addCoffee').disabled = false;
+
+      } catch (error) {
+        document.getElementById('info').innerText = '⚠️ Error loading data: ' + error.message;
       }
-
-      document.getElementById('info').innerText =
-        `Customer: ${currentCup.CustomerName}\nCoffees: ${currentCup.Coffees}`;
-
-      document.getElementById('addCoffee').disabled = false;
     }
+
+    init();
 
     document.getElementById('addCoffee').addEventListener('click', () => {
       if (!currentCup) return;
-      currentCup.Coffees = (parseInt(currentCup.Coffees) || 0) + 1;
+      currentCup.Coffees = parseInt(currentCup.Coffees) + 1;
       document.getElementById('info').innerText =
-        `Customer: ${currentCup.CustomerName}\nCoffees: ${currentCup.Coffees}`;
+        `✅ Customer: ${currentCup.CustomerName}\n☕ Coffees: ${currentCup.Coffees}`;
 
       if (currentCup.Coffees % 10 === 0) {
         alert('🎉 Free coffee unlocked!');
       }
     });
-
-    init();
   </script>
 </body>
 </html>

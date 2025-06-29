@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LattéLink Scanner</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #info { white-space: pre-line; margin-bottom: 10px; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>LattéLink Scanner</h1>
+  <div id="info">Loading...</div>
+  <button id="addCoffee" disabled>Add Coffee</button>
+
+  <script>
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSWnBfpV9eBj_lnusDpuX0Cug5NOuCs8pz5KRSqvLJuqRcmMMBOfMreOcgkJmVpB5dCbQ2sPxxjFpfd/pub?output=csv';
+
+    function getParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    async function fetchSheet() {
+      try {
+        const response = await fetch(sheetUrl);
+        if (!response.ok) throw new Error('Failed to fetch sheet data');
+        return await response.text();
+      } catch (e) {
+        document.getElementById('info').innerText = 'Error loading data: ' + e.message;
+        throw e;
+      }
+    }
+
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      const headers = lines[0].split(',');
+      return lines.slice(1).map(line => {
+        const parts = line.split(',');
+        const obj = {};
+        headers.forEach((header, i) => obj[header] = parts[i]);
+        return obj;
+      });
+    }
+
+    let cups = [];
+    let currentCup = null;
+
+    async function init() {
+      const cupId = getParam('id');
+      if (!cupId) {
+        document.getElementById('info').innerText = 'No cup ID found in URL.';
+        return;
+      }
+
+      const csvText = await fetchSheet();
+      cups = parseCSV(csvText);
+
+      currentCup = cups.find(cup => cup.CupID === cupId);
+
+      if (!currentCup) {
+        document.getElementById('info').innerText = 'Cup not found!';
+        return;
+      }
+
+      document.getElementById('info').innerText =
+        `Customer: ${currentCup.CustomerName}\nCoffees: ${currentCup.Coffees}`;
+
+      document.getElementById('addCoffee').disabled = false;
+    }
+
+    document.getElementById('addCoffee').addEventListener('click', () => {
+      if (!currentCup) return;
+      currentCup.Coffees = (parseInt(currentCup.Coffees) || 0) + 1;
+      document.getElementById('info').innerText =
+        `Customer: ${currentCup.CustomerName}\nCoffees: ${currentCup.Coffees}`;
+
+      if (currentCup.Coffees % 10 === 0) {
+        alert('🎉 Free coffee unlocked!');
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

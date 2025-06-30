@@ -1,109 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LattéLink Scanner</title>
+  <title>LatteLink Scanner</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 30px;
-      max-width: 500px;
-      margin: auto;
-    }
-    h1 {
-      color: #6c4d2d;
-    }
-    #info {
-      margin: 20px 0;
-      font-size: 18px;
-    }
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #fef9f4; }
+    #coffeeInfo { font-size: 22px; margin-top: 20px; color: #5c3d2e; }
     button {
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #c49b66;
+      background-color: #5c3d2e;
       color: white;
+      padding: 14px 28px;
+      font-size: 20px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      margin-top: 30px;
+      transition: background-color 0.3s ease;
     }
-    button:disabled {
-      background-color: #ccc;
+    button:hover {
+      background-color: #8b5e3c;
+    }
+    h1 {
+      color: #5c3d2e;
     }
   </style>
 </head>
 <body>
-  <h1>LattéLink Scanner</h1>
-  <div id="info">Loading...</div>
-  <button id="addCoffee" disabled>Add Coffee</button>
+
+  <h1>☕ LatteLink Scanner</h1>
+  <div id="coffeeInfo">Loading...</div>
+  <button id="addCoffeeBtn" style="display: none;">+1 Coffee</button>
 
   <script>
-    // 🔗 Link to your published Google Sheet (CSV output)
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWnBfpV9eBj_lnusDpuX0Cug5NOuCs8pz5KRSqvLJuqRcmMMBOfMreOcgkJmVpB5dCbQ2sPxxjFpfd/pub?output=csv";
+    const deploymentUrl = "https://script.google.com/macros/s/AKfycbxGirhs5qR48kcZsA_evDhe6XjZtTK7OzTY7Otg5dcBct_Y93SUJClPI3sC9jTZDsaOyw/exec";
+    const urlParams = new URLSearchParams(window.location.search);
+    const cupID = urlParams.get("id");
+    const addCoffeeBtn = document.getElementById("addCoffeeBtn");
+    const infoDiv = document.getElementById("coffeeInfo");
 
-    function getParam(name) {
-      const params = new URLSearchParams(window.location.search);
-      return params.get(name);
+    if (!cupID) {
+      infoDiv.textContent = "❌ No Cup ID found in the URL.";
+    } else {
+      infoDiv.textContent = `Cup ID: ${cupID}`;
+      addCoffeeBtn.style.display = "inline-block";
     }
 
-    async function fetchSheet() {
-      const response = await fetch(sheetUrl);
-      if (!response.ok) throw new Error("Failed to fetch");
-      const text = await response.text();
-      return text;
-    }
-
-    function parseCSV(text) {
-      const lines = text.trim().split('\n');
-      const headers = lines[0].split(',');
-      return lines.slice(1).map(line => {
-        const parts = line.split(',');
-        const obj = {};
-        headers.forEach((header, i) => obj[header.trim()] = parts[i]?.trim());
-        return obj;
-      });
-    }
-
-    let cups = [];
-    let currentCup = null;
-
-    async function init() {
-      const cupId = getParam('id');
-      if (!cupId) {
-        document.getElementById('info').innerText = '❌ No cup ID found in URL.';
-        return;
-      }
-
-      try {
-        const csvText = await fetchSheet();
-        cups = parseCSV(csvText);
-
-        currentCup = cups.find(cup => cup.CupID === cupId);
-
-        if (!currentCup) {
-          document.getElementById('info').innerText = '❌ Cup not found.';
-          return;
+    addCoffeeBtn.addEventListener("click", () => {
+      fetch(deploymentUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `id=${encodeURIComponent(cupID)}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          infoDiv.textContent = `✅ ${data.cupId} now has ${data.newCount} coffees!`;
+        } else {
+          infoDiv.textContent = `❌ Error: ${JSON.stringify(data)}`;
         }
-
-        document.getElementById('info').innerText =
-          `✅ Customer: ${currentCup.CustomerName}\n☕ Coffees: ${currentCup.Coffees}`;
-        document.getElementById('addCoffee').disabled = false;
-
-      } catch (error) {
-        document.getElementById('info').innerText = '⚠️ Error loading data: ' + error.message;
-      }
-    }
-
-    init();
-
-    document.getElementById('addCoffee').addEventListener('click', () => {
-      if (!currentCup) return;
-      currentCup.Coffees = parseInt(currentCup.Coffees) + 1;
-      document.getElementById('info').innerText =
-        `✅ Customer: ${currentCup.CustomerName}\n☕ Coffees: ${currentCup.Coffees}`;
-
-      if (currentCup.Coffees % 10 === 0) {
-        alert('🎉 Free coffee unlocked!');
-      }
+      })
+      .catch(error => {
+        infoDiv.textContent = "🚨 Update failed: " + error.message;
+      });
     });
   </script>
+
 </body>
 </html>

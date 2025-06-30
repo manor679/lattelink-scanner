@@ -14,7 +14,7 @@
       margin-top: 20px;
       color: #5c3d2e;
     }
-    button {
+    button, input[type="password"] {
       background-color: #5c3d2e;
       color: white;
       padding: 14px 28px;
@@ -22,14 +22,22 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      margin-top: 30px;
+      margin-top: 20px;
       transition: background-color 0.3s ease;
     }
-    button:hover {
+    button:hover, input[type="password"]:focus {
       background-color: #8b5e3c;
+      outline: none;
     }
     h1 {
       color: #5c3d2e;
+    }
+    #pinSection {
+      margin-top: 30px;
+    }
+    #pinError {
+      color: red;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -37,24 +45,62 @@
 
   <h1>☕ LatteLink</h1>
   <div id="coffeeInfo">Loading...</div>
+
+  <div id="pinSection" style="display:none;">
+    <input type="password" id="pinInput" placeholder="Enter Staff PIN" />
+    <br/>
+    <button id="pinSubmitBtn">Submit PIN</button>
+    <div id="pinError"></div>
+  </div>
+
   <button id="addCoffeeBtn" style="display: none;">+1 Coffee</button>
 
   <script>
     const deploymentUrl = "https://script.google.com/macros/s/AKfycbzRtK0jmlU5ZDCb562JcniWdCfFA3EblYguDZHJ2DuhhsWVfLQys2joefvE8oyuHI8efw/exec";
+    const STAFF_PIN = "4321";  // Change this PIN as you like
+
     const urlParams = new URLSearchParams(window.location.search);
     const cupID = urlParams.get("id");
     const isStaff = urlParams.get("staff") === "true";
+
     const addCoffeeBtn = document.getElementById("addCoffeeBtn");
     const infoDiv = document.getElementById("coffeeInfo");
+
+    const pinSection = document.getElementById("pinSection");
+    const pinInput = document.getElementById("pinInput");
+    const pinSubmitBtn = document.getElementById("pinSubmitBtn");
+    const pinError = document.getElementById("pinError");
 
     if (!cupID) {
       infoDiv.textContent = "❌ No Cup ID found in the URL.";
     } else {
       if (isStaff) {
-        addCoffeeBtn.style.display = "inline-block";
-        infoDiv.textContent = `Cup ID: ${cupID}`;
-      }
+        // Show PIN input first
+        infoDiv.textContent = "Please enter Staff PIN to continue.";
+        pinSection.style.display = "block";
 
+        pinSubmitBtn.addEventListener("click", () => {
+          if (pinInput.value === STAFF_PIN) {
+            pinSection.style.display = "none";
+            addCoffeeBtn.style.display = "inline-block";
+            infoDiv.textContent = `Cup ID: ${cupID}`;
+            loadCoffeeCount();
+          } else {
+            pinError.textContent = "❌ Incorrect PIN. Try again.";
+          }
+        });
+
+        pinInput.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") pinSubmitBtn.click();
+        });
+
+      } else {
+        // Customer view — just load count
+        loadCoffeeCount();
+      }
+    }
+
+    function loadCoffeeCount() {
       fetch(`${deploymentUrl}?id=${encodeURIComponent(cupID)}`)
         .then(res => res.json())
         .then(data => {

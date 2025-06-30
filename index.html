@@ -31,7 +31,7 @@
   <button id="addCoffeeBtn" style="display: none;">+1 Coffee</button>
 
   <script>
-    const deploymentUrl = "https://script.google.com/macros/s/AKfycbwy4n31GjY0-0vlhEZ98oAl6gC9n8AKtQrDJBx_CBChF6HwX18SFStzhnSQF6tmDUDONA/exec";
+    const deploymentUrl = "https://script.google.com/macros/s/AKfycbyK_CQK0ktF-1Zay7WLNOKVmkSI4v-7sWDG_Nd3clqyD5HO3x4a5-fdiBlwbdOX4KaM/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const cupID = urlParams.get("id");
     const addCoffeeBtn = document.getElementById("addCoffeeBtn");
@@ -61,8 +61,10 @@
             const coffeesLeft = 10 - data.newCount;
             infoDiv.textContent = `✅ ${data.cupId} has ${data.newCount} coffees — only ${coffeesLeft} more until a free coffee!`;
           }
+        } else if (data.error) {
+          infoDiv.textContent = `❌ Error: ${data.error}`;
         } else {
-          infoDiv.textContent = `❌ Error: ${JSON.stringify(data)}`;
+          infoDiv.textContent = `❌ Unexpected error`;
         }
       })
       .catch(error => {

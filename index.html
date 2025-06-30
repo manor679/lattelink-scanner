@@ -55,7 +55,11 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === "success") {
-          infoDiv.textContent = `✅ ${data.cupId} now has ${data.newCount} coffees!`;
+          if (data.freeCoffee) {
+            infoDiv.textContent = `🎉 ${data.cupId} reached 10 coffees — FREE COFFEE! ☕`;
+          } else {
+            infoDiv.textContent = `✅ ${data.cupId} now has ${data.newCount} coffees!`;
+          }
         } else {
           infoDiv.textContent = `❌ Error: ${JSON.stringify(data)}`;
         }

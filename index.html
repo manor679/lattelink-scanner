@@ -1,40 +1,75 @@
-<script>
-  const deploymentUrl = "https://script.google.com/macros/s/AKfycbwy4n31GjY0-0vlhEZ98oAl6gC9n8AKtQrDJBx_CBChF6HwX18SFStzhnSQF6tmDUDONA/exec";
-  const urlParams = new URLSearchParams(window.location.search);
-  const cupID = urlParams.get("id");
-  const addCoffeeBtn = document.getElementById("addCoffeeBtn");
-  const infoDiv = document.getElementById("coffeeInfo");
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LatteLink Scanner</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #fef9f4; }
+    #coffeeInfo { font-size: 22px; margin-top: 20px; color: #5c3d2e; }
+    button {
+      background-color: #5c3d2e;
+      color: white;
+      padding: 14px 28px;
+      font-size: 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 30px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #8b5e3c;
+    }
+    h1 {
+      color: #5c3d2e;
+    }
+  </style>
+</head>
+<body>
 
-  if (!cupID) {
-    infoDiv.textContent = "❌ No Cup ID found in the URL.";
-  } else {
-    infoDiv.textContent = `Cup ID: ${cupID}`;
-    addCoffeeBtn.style.display = "inline-block";
-  }
+  <h1>☕ LatteLink Scanner</h1>
+  <div id="coffeeInfo">Loading...</div>
+  <button id="addCoffeeBtn" style="display: none;">+1 Coffee</button>
 
-  addCoffeeBtn.addEventListener("click", () => {
-    fetch(deploymentUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: `id=${encodeURIComponent(cupID)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === "success") {
-        if (data.freeCoffee) {
-          infoDiv.textContent = `🎉 ${data.cupId} earned a FREE COFFEE! ☕`;
+  <script>
+    const deploymentUrl = "https://script.google.com/macros/s/AKfycbwy4n31GjY0-0vlhEZ98oAl6gC9n8AKtQrDJBx_CBChF6HwX18SFStzhnSQF6tmDUDONA/exec";
+    const urlParams = new URLSearchParams(window.location.search);
+    const cupID = urlParams.get("id");
+    const addCoffeeBtn = document.getElementById("addCoffeeBtn");
+    const infoDiv = document.getElementById("coffeeInfo");
+
+    if (!cupID) {
+      infoDiv.textContent = "❌ No Cup ID found in the URL.";
+    } else {
+      infoDiv.textContent = `Cup ID: ${cupID}`;
+      addCoffeeBtn.style.display = "inline-block";
+    }
+
+    addCoffeeBtn.addEventListener("click", () => {
+      fetch(deploymentUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `id=${encodeURIComponent(cupID)}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          if (data.freeCoffee) {
+            infoDiv.textContent = `🎉 ${data.cupId} earned a FREE COFFEE! ☕`;
+          } else {
+            const coffeesLeft = 10 - data.newCount;
+            infoDiv.textContent = `✅ ${data.cupId} has ${data.newCount} coffees — only ${coffeesLeft} more until a free coffee!`;
+          }
         } else {
-          const coffeesLeft = 10 - data.newCount;
-          infoDiv.textContent = `✅ ${data.cupId} has ${data.newCount} coffees — only ${coffeesLeft} more until a free coffee!`;
+          infoDiv.textContent = `❌ Error: ${JSON.stringify(data)}`;
         }
-      } else {
-        infoDiv.textContent = `❌ Error: ${JSON.stringify(data)}`;
-      }
-    })
-    .catch(error => {
-      infoDiv.textContent = "🚨 Update failed: " + error.message;
+      })
+      .catch(error => {
+        infoDiv.textContent = "🚨 Update failed: " + error.message;
+      });
     });
-  });
-</script>
+  </script>
+
+</body>
+</html>

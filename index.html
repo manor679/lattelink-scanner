@@ -3,8 +3,17 @@
 <head>
   <title>LatteLink Scanner</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 40px; background: #fef9f4; }
-    #coffeeInfo { font-size: 22px; margin-top: 20px; color: #5c3d2e; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+      background: #fef9f4;
+    }
+    #coffeeInfo {
+      font-size: 22px;
+      margin-top: 20px;
+      color: #5c3d2e;
+    }
     button {
       background-color: #5c3d2e;
       color: white;
@@ -26,7 +35,7 @@
 </head>
 <body>
 
-  <h1>☕ LatteLink Scanner</h1>
+  <h1>☕ LatteLink</h1>
   <div id="coffeeInfo">Loading...</div>
   <button id="addCoffeeBtn" style="display: none;">+1 Coffee</button>
 
@@ -34,6 +43,7 @@
     const deploymentUrl = "https://script.google.com/macros/s/AKfycbyK_CQK0ktF-1Zay7WLNOKVmkSI4v-7sWDG_Nd3clqyD5HO3x4a5-fdiBlwbdOX4KaM/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const cupID = urlParams.get("id");
+    const isStaff = urlParams.get("staff") === "true";
     const addCoffeeBtn = document.getElementById("addCoffeeBtn");
     const infoDiv = document.getElementById("coffeeInfo");
 
@@ -41,10 +51,12 @@
       infoDiv.textContent = "❌ No Cup ID found in the URL.";
     } else {
       infoDiv.textContent = `Cup ID: ${cupID}`;
-      addCoffeeBtn.style.display = "inline-block";
+      if (isStaff) {
+        addCoffeeBtn.style.display = "inline-block";
+      }
     }
 
-    addCoffeeBtn.addEventListener("click", () => {
+    function fetchAndDisplay() {
       fetch(deploymentUrl, {
         method: "POST",
         headers: {
@@ -55,11 +67,11 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === "success") {
-          if (data.freeCoffee) {
+          if (data.freeCoffee && isStaff) {
             infoDiv.textContent = `🎉 ${data.cupId} earned a FREE COFFEE! ☕`;
           } else {
             const coffeesLeft = 10 - data.newCount;
-            infoDiv.textContent = `✅ ${data.cupId} has ${data.newCount} coffees — only ${coffeesLeft} more until a free coffee!`;
+            infoDiv.textContent = `☕ ${data.cupId} has ${data.newCount} coffees — ${coffeesLeft} to go!`;
           }
         } else if (data.error) {
           infoDiv.textContent = `❌ Error: ${data.error}`;
@@ -70,6 +82,15 @@
       .catch(error => {
         infoDiv.textContent = "🚨 Update failed: " + error.message;
       });
+    }
+
+    // Fetch once when page loads
+    fetchAndDisplay();
+
+    // Add coffee only for staff
+    addCoffeeBtn.addEventListener("click", () => {
+      if (!isStaff) return;
+      fetchAndDisplay();
     });
   </script>
 

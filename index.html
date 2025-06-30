@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LatteLink Scanner</title>
+  <title>LatteLink</title>
   <style>
     body {
       font-family: sans-serif;
@@ -40,7 +40,7 @@
   <button id="addCoffeeBtn" style="display: none;">+1 Coffee</button>
 
   <script>
-    const deploymentUrl = "https://script.google.com/macros/s/AKfycbwaA2QuTee1wVtvtKf3Egt9Fy8jkhCEMV4cabTI8QbAtgkMeruKrt7xyT0r8TWYGGZxUQ/exec";
+    const deploymentUrl = "https://script.google.com/macros/s/AKfycbzRtK0jmlU5ZDCb562JcniWdCfFA3EblYguDZHJ2DuhhsWVfLQys2joefvE8oyuHI8efw/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const cupID = urlParams.get("id");
     const isStaff = urlParams.get("staff") === "true";
@@ -55,12 +55,15 @@
         infoDiv.textContent = `Cup ID: ${cupID}`;
       }
 
-      // Fetch current coffee count (READ-ONLY)
       fetch(`${deploymentUrl}?id=${encodeURIComponent(cupID)}`)
         .then(res => res.json())
         .then(data => {
           if (data.status === "view") {
-            infoDiv.textContent = `☕ ${data.cupId} has ${data.currentCount} coffees — ${data.coffeesLeft} to go!`;
+            if (data.freeCoffee) {
+              infoDiv.textContent = `🎉 ${data.cupId} just earned a FREE COFFEE! ☕ Enjoy!`;
+            } else {
+              infoDiv.textContent = `☕ ${data.cupId} has ${data.currentCount} coffees — ${data.coffeesLeft} to go!`;
+            }
           } else if (data.error) {
             infoDiv.textContent = `❌ Error: ${data.error}`;
           }
@@ -70,7 +73,6 @@
         });
     }
 
-    // Staff-only coffee increment
     addCoffeeBtn.addEventListener("click", () => {
       fetch(deploymentUrl, {
         method: "POST",

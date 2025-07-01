@@ -1,57 +1,149 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LatteLink Check-In</title>
+  <title>LatteLink</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f9f3eb; }
-    input, button { margin: 10px; padding: 12px; font-size: 18px; width: 280px; border-radius: 6px; border: 1px solid #ccc; }
-    button { background: #6d4c41; color: white; cursor: pointer; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+      background: #fef9f4;
+    }
+    #coffeeInfo {
+      font-size: 22px;
+      margin-top: 20px;
+      color: #5c3d2e;
+    }
+    button, input[type="password"] {
+      background-color: #5c3d2e;
+      color: white;
+      padding: 14px 28px;
+      font-size: 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover, input[type="password"]:focus {
+      background-color: #8b5e3c;
+      outline: none;
+    }
+    h1 {
+      color: #5c3d2e;
+    }
+    #pinSection {
+      margin-top: 30px;
+    }
+    #pinError {
+      color: red;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>☕ LatteLink Check-In</h1>
-  <p>Enter your phone/email and the code from staff</p>
+  <h1>☕ LatteLink</h1>
+  <div id="coffeeInfo">Loading...</div>
 
-  <input type="text" id="userId" placeholder="Your phone or email"><br>
-  <input type="text" id="pinCode" placeholder="Staff code"><br>
-  <button onclick="checkIn()">Check In</button>
+  <div id="pinSection" style="display:none;">
+    <input type="password" id="pinInput" placeholder="Enter Staff PIN" />
+    <br/>
+    <button id="pinSubmitBtn">Submit PIN</button>
+    <div id="pinError"></div>
+  </div>
 
-  <div id="message" style="margin-top: 20px; font-weight: bold;"></div>
+  <button id="addCoffeeBtn" style="display: none;">+1 Coffee</button>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"; // Replace this!
+    const deploymentUrl = "https://script.google.com/macros/s/AKfycbzRtK0jmlU5ZDCb562JcniWdCfFA3EblYguDZHJ2DuhhsWVfLQys2joefvE8oyuHI8efw/exec";
+    const STAFF_PIN = "7643";  // Change this PIN as you like
 
-    async function checkIn() {
-      const id = document.getElementById("userId").value.trim();
-      const pin = document.getElementById("pinCode").value.trim();
-      const msg = document.getElementById("message");
+    const urlParams = new URLSearchParams(window.location.search);
+    const cupID = urlParams.get("id");
+    const isStaff = urlParams.get("staff") === "true";
 
-      if (!id || !pin) {
-        msg.textContent = "Please enter both your ID and the code.";
-        return;
-      }
+    const addCoffeeBtn = document.getElementById("addCoffeeBtn");
+    const infoDiv = document.getElementById("coffeeInfo");
 
-      msg.textContent = "Checking in...";
+    const pinSection = document.getElementById("pinSection");
+    const pinInput = document.getElementById("pinInput");
+    const pinSubmitBtn = document.getElementById("pinSubmitBtn");
+    const pinError = document.getElementById("pinError");
 
-      try {
-        const response = await fetch(scriptURL, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: `id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}`
+    if (!cupID) {
+      infoDiv.textContent = "❌ No Cup ID found in the URL.";
+    } else {
+      if (isStaff) {
+        // Show PIN input first
+        infoDiv.textContent = "Please enter Staff PIN to continue.";
+        pinSection.style.display = "block";
+
+        pinSubmitBtn.addEventListener("click", () => {
+          if (pinInput.value === STAFF_PIN) {
+            pinSection.style.display = "none";
+            addCoffeeBtn.style.display = "inline-block";
+            infoDiv.textContent = `Cup ID: ${cupID}`;
+            loadCoffeeCount();
+          } else {
+            pinError.textContent = "❌ Incorrect PIN. Try again.";
+          }
         });
-        const data = await response.json();
 
-        if (data.error) {
-          msg.textContent = "❌ " + data.error;
-        } else {
-          const left = 10 - data.coffees;
-          msg.textContent = `✅ You now have ${data.coffees} coffee${data.coffees == 1 ? "" : "s"} — ${left <= 0 ? "Enjoy your free coffee!" : left + " left until a free one!"}`;
-        }
-      } catch (err) {
-        msg.textContent = "🚨 Network error. Try again.";
+        pinInput.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") pinSubmitBtn.click();
+        });
+
+      } else {
+        // Customer view — just load count
+        loadCoffeeCount();
       }
     }
+
+    function loadCoffeeCount() {
+      fetch(`${deploymentUrl}?id=${encodeURIComponent(cupID)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "view") {
+            if (data.freeCoffee) {
+              infoDiv.textContent = `🎉 ${data.cupId} just earned a FREE COFFEE! ☕ Enjoy!`;
+            } else {
+              infoDiv.textContent = `☕ ${data.cupId} has ${data.currentCount} coffees — ${data.coffeesLeft} to go!`;
+            }
+          } else if (data.error) {
+            infoDiv.textContent = `❌ Error: ${data.error}`;
+          }
+        })
+        .catch(err => {
+          infoDiv.textContent = "🚨 Failed to load: " + err.message;
+        });
+    }
+
+    addCoffeeBtn.addEventListener("click", () => {
+      fetch(deploymentUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `id=${encodeURIComponent(cupID)}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          if (data.freeCoffee) {
+            infoDiv.textContent = `🎉 ${data.cupId} earned a FREE COFFEE! ☕`;
+          } else {
+            const coffeesLeft = 10 - data.newCount;
+            infoDiv.textContent = `✅ ${data.cupId} has ${data.newCount} coffees — ${coffeesLeft} to go!`;
+          }
+        } else if (data.error) {
+          infoDiv.textContent = `❌ Error: ${data.error}`;
+        }
+      })
+      .catch(error => {
+        infoDiv.textContent = "🚨 Update failed: " + error.message;
+      });
+    });
   </script>
 
 </body>
